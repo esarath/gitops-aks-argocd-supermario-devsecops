@@ -1,0 +1,26 @@
+# ArgoCD Application definition for this project.
+# Apply once, manually, against the AKS cluster's argocd namespace:
+#   kubectl apply -f argocd/application.yaml -n argocd
+# After that, ArgoCD manages sync itself — do not edit the live cluster
+# deployment by hand, edit k8s/deployment.yaml on the `deploy` branch instead
+# (the CI pipeline does this automatically on every push to `main`).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: supermariogamedeployment
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/esarath/gitops-aks-argocd-supermario-devsecops.git
+    targetRevision: deploy
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

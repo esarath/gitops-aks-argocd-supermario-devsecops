@@ -1,0 +1,14 @@
+{
+  "name": "gitops-practice-devsecops-sonarqube-sast-scan-supermario",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1"
+  }
+}
