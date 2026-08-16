@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: supermariogame-container
-        image: esarathmails/supermariogitopsproject:init
+        image: esarathmails/supermariogitopsproject:b175841
         ports:
         - containerPort: 8080
 ---
