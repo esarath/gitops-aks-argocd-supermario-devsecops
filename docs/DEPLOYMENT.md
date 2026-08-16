@@ -6,16 +6,22 @@ this POC — the "why" notes are there so you don't have to re-debug them.
 
 ## 0. Prerequisites
 
-- An AKS cluster already provisioned, with ArgoCD already installed in the
-  `argocd` namespace and `kubectl`/`argocd` CLI access configured locally
-  (`kubectl config current-context` should show your AKS context). Cluster
-  provisioning itself is out of scope for this repo — use your existing
-  Terraform infra repo for that.
-- A Docker Hub account + access token.
-- A SonarQube server (self-hosted or SonarCloud) reachable from GitHub
-  Actions runners, with a project created for this repo.
-- `gh` CLI authenticated (`gh auth status`), or push access to a new GitHub
-  repo you'll create.
+- An AKS cluster already provisioned, with ArgoCD and SonarQube already
+  installed on it. **Run [docs/INFRA.md](INFRA.md) first** if you haven't
+  — it's the Terraform module that creates all of this from nothing.
+  `kubectl config current-context` should show your AKS context once done.
+- A Docker Hub account + access token (**Read & Write** scope — a
+  read-only token fails at the push step with `unauthorized: access token
+  has insufficient scopes`, easy to pick by accident since some Docker Hub
+  UI flows default to read-only).
+- SonarQube reachable from GitHub Actions runners, with a project created
+  for this repo (INFRA.md walks through this via API).
+- `gh` CLI authenticated (`gh auth status`) with the **`workflow`** OAuth
+  scope — pushing a repo that includes a `.github/workflows/*.yaml` file
+  fails otherwise with `refusing to allow an OAuth App to create or update
+  workflow ... without workflow scope`. Fix ahead of time with:
+  `gh auth refresh -h github.com -s workflow`.
+- push access to a new GitHub repo you'll create.
 
 ## 1. Create the GitHub repo and push this code
 
@@ -44,8 +50,8 @@ Repo → Settings → Secrets and variables → Actions → New repository secre
 |---|---|
 | `DOCKERHUB_USERNAME` | Your Docker Hub username |
 | `DOCKERHUB_TOKEN` | Docker Hub access token (not your password) |
-| `SONAR_HOST_URL` | Your SonarQube server URL |
-| `SONAR_TOKEN` | SonarQube project/user token |
+| `SONAR_HOST_URL` | Your SonarQube server URL, e.g. `http://<sonarqube-external-ip>:9000` |
+| `SONAR_TOKEN` | SonarQube user token (INFRA.md §"After apply" shows how to generate one) |
 | `GIT_EMAIL` | Commit author email for automated `deploy` branch commits |
 | `GIT_USERNAME` | Commit author name for automated `deploy` branch commits |
 
@@ -110,6 +116,68 @@ Open `http://<EXTERNAL-IP>:8600/` in a browser. Hard refresh
 bypass any cached response from a prior deploy.
 
 ## 6. Troubleshooting (issues actually hit during this POC)
+
+**`gh repo create ... --push` fails: "refusing to allow an OAuth App to create or update workflow ... without workflow scope"**
+Your `gh` token lacks the `workflow` OAuth scope, required to push any
+file under `.github/workflows/`. Run
+`gh auth refresh -h github.com -s workflow` (opens a browser to
+re-authorize), then retry the push — no need to recreate the repo, it
+already exists at this point, just push again.
+
+**SonarQube Scan step fails: "You're not authorized to run analysis. Please contact the project administrator."**
+The `SONAR_TOKEN` doesn't have access to the project key in
+`sonar-project.properties` — either the project doesn't exist yet on your
+SonarQube server (create it first, see INFRA.md §"After apply"), or the
+token belongs to a different project/doesn't have provisioning rights.
+Easiest fix for a fresh SonarQube instance: create the project via the API
+call in INFRA.md before the first pipeline run.
+
+**`docker push` fails: "unauthorized: access token has insufficient scopes"**
+`DOCKERHUB_TOKEN` was generated with **Read-only** permission. Docker Hub
+token creation doesn't always default to Read & Write — double check the
+permission dropdown when generating it, regenerate if needed, and
+`gh secret set DOCKERHUB_TOKEN --repo <owner>/<repo>` again. Also confirm
+the token was generated under the **same Docker Hub account** as
+`DOCKERHUB_USERNAME` — a token from a different account produces this
+exact same error.
+
+**`terraform apply` fails: `ErrCode_InsufficientVCPUQuota`**
+Free/trial Azure subscriptions have very low (sometimes zero spare) vCPU
+quota per region. See INFRA.md §"Subscription tier matters" — either free
+quota by deleting an unused cluster first, pick a region with spare
+quota, or request an increase (fast/automatic on Pay-As-You-Go, may not be
+grantable on free/trial tiers at all).
+
+**AKS LoadBalancer services stuck `<pending>` forever, events show `PublicIPCountLimitReached`**
+Same root cause as above but for public IPs, not vCPUs — free-tier
+subscriptions cap at 3 public IPs per region, one of which AKS reserves
+for itself, leaving 2 for your own services. If you're running ArgoCD +
+SonarQube + the game all as `LoadBalancer`, that's 3 wanted against a
+budget of 2. This repo's Terraform defaults ArgoCD to `ClusterIP` for
+exactly this reason — see INFRA.md. If a service is stuck pending after
+freeing an IP, force a resync: `kubectl delete svc <name>` then
+`kubectl apply -f k8s/deployment.yaml` (or let ArgoCD's self-heal recreate
+it automatically within its next sync cycle).
+
+**`terraform apply` fails: "Saved plan is stale"**
+Something changed the state since the plan file was generated (commonly:
+a previous `apply` partially succeeded, e.g. created the resource group
+before failing on a later resource). Just re-run `terraform apply`
+directly instead of `terraform apply "<planfile>"` — it computes a fresh
+plan against current state.
+
+**`terraform apply` fails: `OIDCIssuerFeatureCannotBeDisabled`**
+Already fixed in this repo's `terraform/aks.tf`
+(`oidc_issuer_enabled = true`, see INFRA.md for why). If you see this
+anyway, someone removed that line.
+
+**SonarQube's `sonarqube-postgresql-0` pod stuck `ImagePullBackOff`**
+Bitnami removed the pinned Postgres image tag this chart version defaults
+to. Already fixed in `terraform/sonarqube.tf`
+(`postgresql.image.tag = "latest"`), see INFRA.md for the full
+explanation. If you see this anyway, check
+`kubectl describe pod sonarqube-postgresql-0 -n sonarqube` for the exact
+tag it's failing to pull.
 
 **SonarQube Quality Gate fails with unrelated coverage error**
 `new_coverage`/`line_coverage` conditions require test coverage data.

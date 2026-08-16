@@ -21,7 +21,7 @@ output "sonarqube_namespace" {
 }
 
 output "get_argocd_external_ip_command" {
-  value = "kubectl get svc argocd-argocd-server -n ${var.argocd_namespace}"
+  value = "kubectl get svc argocd-server -n ${var.argocd_namespace}"
 }
 
 output "get_sonarqube_external_ip_command" {

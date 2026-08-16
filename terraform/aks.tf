@@ -22,6 +22,10 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   network_profile {
     network_plugin = "azure"
   }
+
+  # AKS enables this by default on new clusters; declaring it explicitly
+  # avoids a plan/apply drift loop (Azure rejects disabling it once on).
+  oidc_issuer_enabled = true
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "user_pool" {

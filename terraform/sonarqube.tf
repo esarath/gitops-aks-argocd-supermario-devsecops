@@ -35,5 +35,14 @@ resource "helm_release" "sonarqube" {
     value = "9000"
   }
 
-  timeout = 600
+  # The chart's bundled Postgres subchart defaults to a pinned Bitnami tag
+  # (11.14.0-debian-10-r22) that Bitnami removed from Docker Hub after their
+  # 2025 catalog restructuring (versioned tags are now paywalled, only
+  # `latest` remains free) — pin to `latest` so the pull actually succeeds.
+  set {
+    name  = "postgresql.image.tag"
+    value = "latest"
+  }
+
+  timeout = 900
 }

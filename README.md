@@ -58,5 +58,20 @@ pointed at `https://github.com/esarath/gitops-aks-argocd-supermario-devsecops.gi
 ## Migrated from
 
 This repo consolidates and hardens a prior POC repo
-(`gitops-practice-devsecops-sonarqube-sast-scan-supermario-repo`). See
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §7 before deleting that repo.
+(`gitops-practice-devsecops-sonarqube-sast-scan-supermario-repo`, now
+archived). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) §7 before deleting
+that repo, if you're doing your own migration.
+
+## Live environment (this instance)
+
+Provisioned via `terraform/` on an Azure free-tier subscription — see
+[docs/INFRA.md](docs/INFRA.md) §"Subscription tier matters" for the public
+IP quota constraint that shaped a couple of the choices below (ArgoCD's
+`ClusterIP` in particular; flip it back to `LoadBalancer` on Pay-As-You-Go):
+
+| | |
+|---|---|
+| AKS cluster | `gitopsSupermarioAks` (resource group `gitops-supermario-rg`, `eastus2`) |
+| Game | publicly reachable, `LoadBalancer` service |
+| ArgoCD | `ClusterIP` — reach via `kubectl port-forward svc/argocd-server -n argocd 8080:80` |
+| SonarQube | publicly reachable, `LoadBalancer` service on port 9000 |

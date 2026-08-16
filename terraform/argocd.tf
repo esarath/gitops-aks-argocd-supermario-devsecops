@@ -18,18 +18,16 @@ resource "helm_release" "argocd" {
   version    = var.argocd_chart_version
   namespace  = kubernetes_namespace.argocd.metadata[0].name
 
+  # ClusterIP, not LoadBalancer: Azure subscriptions on the free/basic tier
+  # cap public IPs per region at 3 (one of which AKS itself reserves for
+  # node outbound traffic, leaving only 2 for our own services). The game
+  # (k8s/deployment.yaml's supermariogame-service) needs a public IP far
+  # more than the ArgoCD admin UI does, so ArgoCD gets the remaining
+  # ClusterIP + `kubectl port-forward` for admin access instead of a third
+  # public IP. Flip this to "LoadBalancer" if your subscription's quota
+  # allows it and you want ArgoCD's UI reachable directly.
   set {
     name  = "server.service.type"
-    value = "LoadBalancer"
-  }
-
-  # Match the original POC's port mapping (80/443 -> server's 8080).
-  set {
-    name  = "server.service.servicePortHttp"
-    value = "80"
-  }
-  set {
-    name  = "server.service.servicePortHttps"
-    value = "443"
+    value = "ClusterIP"
   }
 }
