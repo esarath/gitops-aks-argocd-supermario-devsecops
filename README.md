@@ -12,15 +12,17 @@ New to this repo? Read in this order:
 
 1. **[docs/HLD.md](docs/HLD.md)** — architecture, design decisions, why it's built this way.
 2. **[docs/LLD.md](docs/LLD.md)** — pipeline internals, file layout, the security fixes applied.
-3. **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — exact step-by-step commands to deploy this from scratch, plus a troubleshooting section built from real issues hit during development.
+3. **[docs/INFRA.md](docs/INFRA.md)** — Terraform: provisions the AKS cluster, ArgoCD, and SonarQube. Run this first, on a fresh environment.
+4. **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** — exact step-by-step commands to deploy the app itself, plus a troubleshooting section built from real issues hit during development.
 
-If you just want to get this running end-to-end with no surprises, follow
-`docs/DEPLOYMENT.md` top to bottom — it's written for that purpose
-specifically.
+If you just want to get this running end-to-end with no surprises on a
+brand-new environment: `docs/INFRA.md` first (provisions the cluster +
+ArgoCD + SonarQube), then `docs/DEPLOYMENT.md` (deploys the app onto it).
 
 ## What's in here
 
 ```
+terraform/                              IaC: AKS cluster + ArgoCD + SonarQube (Helm)
 .github/workflows/ci-cd-pipeline.yaml   CI/CD: SAST -> build/push -> scan -> deploy
 argocd/application.yaml                 ArgoCD Application manifest (apply once)
 k8s/deployment.yaml                     Deployment + Service manifest template
@@ -28,7 +30,7 @@ webapp/                                 Game source (served by Tomcat)
 Dockerfile                              Tomcat-based image build
 package.json, jest.config.js            Jest test runner + coverage config
 sonar-project.properties                SonarQube project config
-docs/                                   HLD, LLD, deployment guide
+docs/                                   HLD, LLD, infra, deployment guide
 ```
 
 ## Pipeline at a glance

@@ -1,2 +1,9 @@
 node_modules/
 coverage/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.tfplan

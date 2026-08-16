@@ -71,9 +71,17 @@ Public IP:8600 --> Player's browser
 - Runtime: container runs on Tomcat's default (non-root can be hardened
   further — see [LLD](LLD.md) §6 open items).
 
-## 6. Out of Scope (for this POC)
+## 6. Infrastructure Provisioning
 
-- AKS cluster + ArgoCD installation itself (provisioned separately via
-  Terraform in a companion infra repo — not duplicated here).
-- Ingress/TLS termination (Service is a bare `LoadBalancer` on port 8600).
+The AKS cluster, ArgoCD, and SonarQube are provisioned by the Terraform
+module in `terraform/` — see [docs/INFRA.md](INFRA.md) for the full
+resource list and step-by-step apply instructions. Run that once, before
+the app-level pipeline in [DEPLOYMENT.md](DEPLOYMENT.md), on a fresh
+environment.
+
+## 7. Out of Scope (for this POC)
+
+- Ingress/TLS termination (Services are bare `LoadBalancer`s).
 - Multi-environment (staging/prod) promotion — single `deploy` branch only.
+- External/managed Postgres for SonarQube (uses the Helm chart's bundled
+  subchart — fine for a POC, not for long-term use).

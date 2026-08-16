@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars and adjust as needed, then:
+#   terraform init
+#   terraform plan
+#   terraform apply
+
+resource_group_name     = "myAksResourceGroup"
+resource_group_location = "eastus2"
+aks_cluster_name        = "myAksCluster"
+dns_prefix              = "myaksdns"
+vm_size                 = "Standard_D2s_v6"
+system_node_count       = 1
+user_node_count         = 1
+
+argocd_namespace        = "argocd"
+sonarqube_namespace     = "sonarqube"
